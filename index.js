@@ -60,6 +60,11 @@ async function data() {
                             fs.appendFile('data.csv', csv_data, function (err) {
                                 if (err) return console.log(err);
                             });
+
+                            let match_data = JSON.stringify(data['matches'][i]);
+                            let id = data['matches'][i]["matchID"]
+                            let file_name = 'matches/' + id + '_match.json'
+                            fs.writeFileSync(file_name, match_data);
                         } catch {
                             // console.log("miss")
                         }
