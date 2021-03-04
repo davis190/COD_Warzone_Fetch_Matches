@@ -1,0 +1,7 @@
+node_modules/
+data.csv
+data.xlsx
+~$data.xlsx
+log.log
+error.log
+inputs.js
