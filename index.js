@@ -41,7 +41,7 @@ async function data() {
         var end = end_moment.valueOf()
         var start = end_moment.subtract(hour_interval, 'hours').valueOf();
         try {
-            await API.MWcombatwzdate(inputs.gamertag, start=start, end=end, platform=inputs.platform).then((data) => {
+            await API.MWfullcombatwzdate(inputs.gamertag, start=start, end=end, platform=inputs.platform).then((data) => {
                 try {
                     if (data['matches'].length == 20) {
                         error(end_moment.toDate())
@@ -57,12 +57,14 @@ async function data() {
                                 moment.unix(data['matches'][i]["utcEndSeconds"]).toDate() + "," +
                                 data['matches'][i]["mode"] + "," +
                                 data['matches'][i]["matchID"] + "x\r\n"
-                            fs.appendFile('data.csv', csv_data, function (err) {
+                            fs.appendFile('match_data.csv', csv_data, function (err) {
                                 if (err) return console.log(err);
                             });
 
+                            // Match Detail Files
                             let match_data = JSON.stringify(data['matches'][i]);
                             let id = data['matches'][i]["matchID"]
+                            //MWcombatwzdate version
                             let file_name = 'matches/' + id + '_match.json'
                             fs.writeFileSync(file_name, match_data);
                         } catch {
