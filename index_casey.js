@@ -29,21 +29,8 @@ async function data() {
     } catch(Error) {
         console.log("LOGIN ERROR")
     }
-
-    // let csv__header_data = "teamPlacement," +
-    //     "kills," +
-    //     "start," + 
-    //     "end," +
-    //     "mode," +
-    //     "matchID\r\n"
-    // fs.writeFile('data.csv', csv__header_data, function (err) {
-    //     if (err) return console.log(err);
-    // });
-    // for([key, val] of Object.entries(inputs.gamers)) {
-    //     console.log(key, val);
-    // }
     var end_moment = moment()
-    var hour_interval = inputs.hour_interval
+    var day_interval = inputs.day_interval
     try{
         var match_list = JSON.parse(fs.readFileSync('./full_match_list.json'));
         console.log('MATCH_LIST FOUND')
@@ -54,20 +41,20 @@ async function data() {
     console.log(match_list.length)
     var run_match_list = []
     // LOOP THRU X AMOUNT OF QUERY LOOPS
-    for (var x = 0; x <= inputs.query_loops; x++) {
+    for (var x = 0; x < inputs.query_loops; x++) {
         log("Looping on "+ x + " " + end_moment.toDate())
         var end = end_moment.valueOf()
-        var start = end_moment.subtract(hour_interval, 'days').valueOf();
+        var start = end_moment.subtract(day_interval, 'days').valueOf();
         try {
             // LOOP THRU INPUTS.GAMERS
             for([key, val] of Object.entries(inputs.gamers)) {
                 try{
-                    console.log(key, val, end);
+                    console.log(key, 'start:', start, 'end:',end);
                     log(key)
                     await sleep(1500);
                     await API.MWfullcombatwzdate(gamertag=key, start=start, end=end, platform=val).then((data) => {
                         try {
-                            console.log(data.length)
+                            console.log('Matches found: ', data.length)
                             for (var i = 0; i <= data.length; i++) {
                                 try{
                                     //console.log(data[i]['matchId'])
@@ -79,9 +66,9 @@ async function data() {
                                 } catch {
                                     // console.log("miss")
                                 }
-                                end = data[i]['timestamp']
+                                //end = data[i]['timestamp']
                             }
-                            console.log('end',end)
+                            //console.log('end',end)
                             let r_list = JSON.stringify(run_match_list)
                             fs.writeFileSync('run_match_list.json', r_list)
                             
@@ -100,7 +87,7 @@ async function data() {
     }
     console.log('MATCH LIST COUNT FOR ALL USERS:')
     console.log(match_list.length)
-    console.log(match_list)
+    //console.log(match_list)
     console.log('RUN_MATCH LIST COUNT FOR ALL USERS:')
     console.log(run_match_list.length)
     console.log(run_match_list)
@@ -154,7 +141,7 @@ async function data2() {
         }
     ]
     var end_moment = moment()
-    var hour_interval = inputs.hour_interval
+    var day_interval = inputs.day_interval
     for([key, val] of Object.entries(inputs.gamers)) {
         try{
             console.log(key, val);
