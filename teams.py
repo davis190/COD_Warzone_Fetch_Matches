@@ -101,6 +101,7 @@ def create_full_agg(pewpers):
         'br_truckwar_trwarsquads',
         'br_zxp_zmbroy',
         'br_rebirth_rbrthtrios',
+        'br_rebirth_rbrthduos',
         'br_rebirth_rbrthquad'
     ]
 
@@ -111,21 +112,49 @@ def create_full_agg(pewpers):
     directory = r'./all_matches'
     bad_files = []
 
+    # TODO
+    # s3 = boto3.client('s3')
+    # BUCKET_NAME = 'houstontrashtros.com'
+    #END TODO
+
     #CSV to create
-    print('Creating all_match_data.csv ....')
-    with open('all_match_data.csv', 'w') as csvfile:
+    # print('Creating all_match_data.csv ....')
+    #TODO:new make 'a' - for append
+    print('Opening all_match_data.csv...')
+    # s3.download_file(BUCKET_NAME, 'wz/all_match_data.csv', '/tmp/all_match_data.csv')
+    # with open('/tmp/all_match_data.csv', 'a') as csvfile:
+    #end TODO
+
+    with open('all_match_data.csv', 'a') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=field_names)
-        writer.writeheader()
+        # writer.writeheader()
 
         # List of Full Match Files
-        print('Searching for pewpers in all collected matches...')
+        print('Searching for pewpers in all newly collected matches...')
         filecount = 0
-        for filename in os.listdir(directory):
+        #TODO:new change to loop thru run_match_list.json
+
+        # s3.download_file(BUCKET_NAME, 'wz/run_match_list.json', '/tmp/run_match_list.json')
+        with open('run_match_list.json') as rml:
+            match_list = json.load(rml)
+            print('run_match_list: ', match_list)
+
+        for matchID in match_list:
+            filename =  matchID + '.json'
+
+            #     s3.download_file(BUCKET_NAME, 'wz/all_matches/'+filename, '/tmp/'+filename)
+            #     with open('/tmp/'+filename) as f:
+            #             match = json.load(f)
+
+            # END TODO
+            # to replace
+            # for filename in os.listdir(directory):
             fullPath = os.path.join(directory, filename)
             
             if filename.endswith(".json") :
                 with open(fullPath) as f:
                     match = json.load(f)
+            # end of replace
 
             players = match['allPlayers']
 
@@ -181,8 +210,6 @@ def create_full_agg(pewpers):
                         bad_files.append(filename)
     print('Files moved to filtered folder:', filecount)
     print('Bad Files:', bad_files)
-
-
 
 def create_user_files(pewpers):
 
@@ -258,8 +285,6 @@ def create_user_files(pewpers):
         print('Create file: ' + file_name)
         d.to_csv(file_name, index=False)
 
-
-
 def cumtotals(df, seasons):
 
     df = df.sort_values(by=['start'])
@@ -321,7 +346,6 @@ def cumtotals(df, seasons):
     df = pd.concat(dfs,ignore_index=True)
     return df
 
-    
 def test(pewpers):
 
     field_names = ["matchID", "user", "mode","start", "end",
@@ -676,16 +700,16 @@ def daily_totals(pewpers): #daily_totals
     yest = today - timedelta(days = 1)
     # print('current_date', current_date)
 
-    print(today)
-    print(tomorrow)
-    print(yest)
+    # print(today)
+    # print(tomorrow)
+    # print(yest)
 
 
     # unix time for today and yesterday
     t = time.mktime(today.timetuple())
     tom = time.mktime(tomorrow.timetuple())
     y =  time.mktime(yest.timetuple())
-    print(int(t), int(tom), int(y))
+    # print(int(t), int(tom), int(y))
 
     df_list =[]
     for p in pewpers:
@@ -715,77 +739,98 @@ def daily_totals(pewpers): #daily_totals
         games = (df.loc[(df['start'] > t) & (df['br_stats'] == True),'matchID']).count()
         games_list.append(games)
 
-        #Get Wins by Season
-        wins = (df.loc[(df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] == 1),'teamPlacement']).count()
-        wins_list.append(wins)
+        if games == 0 :
+            wins_list.append(0)
+            kills_list.append(0)
+            deaths_list.append(0)
+            kd_list.append(0)
+            top5_list.append(0)
+            top10_list.append(0)
+            top25_list.append(0)
+        else:
 
-        #Kills by Season
-        kills = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True),'kills']).sum()
-        kills_list.append(kills)
-        
-        #Deaths by Season
-        deaths = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True),'deaths']).sum()
-        # print(deaths)
-        deaths_list.append(deaths)
-        
-        # #KD by Season
-        kd = round(kills /  deaths,2)
-        # print(kd)
-        kd_list.append(kd)
+            #Get Wins by Season
+            wins = (df.loc[(df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] == 1),'teamPlacement']).count()
+            wins_list.append(wins)
+
+            #Kills by Season
+            kills = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True),'kills']).sum()
+            kills_list.append(kills)
+            
+            #Deaths by Season
+            deaths = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True),'deaths']).sum()
+            # print(deaths)
+            deaths_list.append(deaths)
+            
+            # #KD by Season
+            kd = round(kills /  deaths,2)
+            # print(kd)
+            kd_list.append(kd)
 
 
-        #downs by Season
-        top5 = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] < 6),'teamPlacement']).count()
-        top5_list.append(top5)
+            #downs by Season
+            top5 = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] < 6),'teamPlacement']).count()
+            top5_list.append(top5)
 
 
-        #downs by Season
-        top10 = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] < 11),'teamPlacement']).count()
-        top10_list.append(top10)
+            #downs by Season
+            top10 = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] < 11),'teamPlacement']).count()
+            top10_list.append(top10)
 
 
-        #downs by Season
-        top25 = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] < 26),'teamPlacement']).count()
-        top25_list.append(top25)
+            #downs by Season
+            top25 = (df.loc[ (df['start'] > t) & (df['start'] < tom) & (df['br_stats'] == True) & (df['teamPlacement'] < 26),'teamPlacement']).count()
+            top25_list.append(top25)
 
         # YESTERDAY
+
 
         #Get Games count
         y_games = (df.loc[(df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True),'matchID']).count()
         y_games_list.append(y_games)
 
-        #Get Wins by Season
-        y_wins = (df.loc[(df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] == 1),'teamPlacement']).count()
-        y_wins_list.append(y_wins)
+        if y_games == 0 :
+            y_wins_list.append(0)
+            y_kills_list.append(0)
+            y_deaths_list.append(0)
+            y_kd_list.append(0)
+            y_top5_list.append(0)
+            y_top10_list.append(0)
+            y_top25_list.append(0)
+        else:
 
-        #Kills by Season
-        y_kills = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True),'kills']).sum()
-        y_kills_list.append(y_kills)
-        
-        #Deaths by Season
-        y_deaths = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True),'deaths']).sum()
-        # print(deaths)
-        y_deaths_list.append(y_deaths)
-        
-        # #KD by Season
-        y_kd = round(y_kills /  y_deaths,2)
-        # print(kd)
-        y_kd_list.append(y_kd)
+            #Get Wins by Season
+            y_wins = (df.loc[(df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] == 1),'teamPlacement']).count()
+            y_wins_list.append(y_wins)
+
+            #Kills by Season
+            y_kills = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True),'kills']).sum()
+            y_kills_list.append(y_kills)
+            
+            #Deaths by Season
+            y_deaths = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True),'deaths']).sum()
+            # print(deaths)
+            y_deaths_list.append(y_deaths)
+            
+            # #KD by Season
+            y_kd = round(y_kills /  y_deaths,2)
+            # print(kd)
+            y_kd_list.append(y_kd)
 
 
-        #downs by Season
-        y_top5 = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] < 6),'teamPlacement']).count()
-        y_top5_list.append(y_top5)
+            #downs by Season
+            y_top5 = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] < 6),'teamPlacement']).count()
+            y_top5_list.append(y_top5)
 
 
-        #downs by Season
-        y_top10 = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] < 11),'teamPlacement']).count()
-        y_top10_list.append(y_top10)
+            #downs by Season
+            y_top10 = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] < 11),'teamPlacement']).count()
+            y_top10_list.append(y_top10)
 
 
-        #downs by Season
-        y_top25 = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] < 26),'teamPlacement']).count()
-        y_top25_list.append(y_top25)
+            #downs by Season
+            y_top25 = (df.loc[ (df['start'] > y) & (df['start'] < t) & (df['br_stats'] == True) & (df['teamPlacement'] < 26),'teamPlacement']).count()
+            y_top25_list.append(y_top25)
 
 
         d = {
@@ -812,11 +857,14 @@ def daily_totals(pewpers): #daily_totals
         df_list.append(user_df)
     merged = pd.concat(df_list)
 
-    print(merged)
+    # print(merged)
 
     file_name = str('MWBattleData/daily_totals/'+str(today)+'.csv')
-    print('Create file: ' + file_name)
+    file_name2 = str('MWBattleData/daily_totals/daily_totals.csv')
+    # print('Create file: ' + file_name)
     merged.to_csv(file_name, index=False)
+    merged.to_csv(file_name2, index=False)
+
 
 def daily_games(pewpers): #daily_totals
 
@@ -826,16 +874,16 @@ def daily_games(pewpers): #daily_totals
     yest = today - timedelta(days = 1)
     # print('current_date', current_date)
 
-    print(today)
-    print(tomorrow)
-    print(yest)
+    # print(today)
+    # print(tomorrow)
+    # print(yest)
 
 
     # unix time for today and yesterday
     t = time.mktime(today.timetuple())
     tom = time.mktime(tomorrow.timetuple())
     y =  time.mktime(yest.timetuple())
-    print(int(t), int(tom), int(y))
+    # print(int(t), int(tom), int(y))
 
     df_list =[]
     for p in pewpers:
@@ -846,7 +894,7 @@ def daily_games(pewpers): #daily_totals
 
 
         #Get Games count
-        user_df = df.loc[(df['start'] > y)]
+        user_df = df.loc[(df['start'] > y) & (df['br_stats']== True)]
 
         df_list.append(user_df)
     merged = pd.concat(df_list)
@@ -857,11 +905,24 @@ def daily_games(pewpers): #daily_totals
     merged['mode'].mask(merged['mode'] == 'br_brduos', 'Duos', inplace=True)
     merged['mode'].mask(merged['mode'] == 'br_brquads', 'Quads', inplace=True)
 
+
     merged['gulagDeaths'].mask(merged['gulagDeaths'] >= 1, 1, inplace=True)
 
+    merged['gulag'] = ''
+    merged['gulag'].mask(merged['gulagDeaths'] == 1, 'L', inplace=True)
+    merged['gulag'].mask(merged['gulagKills'] == 1, 'W', inplace=True)
+    merged['gulag'].mask((merged['gulagDeaths'] == 0) & (merged['gulagKills'] == 0), '-', inplace=True)
+
+    merged['dmg_to_kill'] = merged.damageDone / merged.kills 
+    merged['dmg_to_kill'].mask(merged['kills'] == 0, 0, inplace=True)
+
+    merged['dmg_ratio'] = round(merged.damageDone / merged.damageTaken,2)
+
+
+    merged['potential_kills'] = merged.damageDone / 250
 
     merged = merged.sort_values(by=['start'])
-    merged = merged[['matchID', 'start', 'user', 'mode', 'teamPlacement', 'kills', 'deaths', 'kdRatio', 'assists', 'downs', 'damageDone', 'damageTaken', 'gulagKills', 'gulagDeaths', 'headshots', 'objectiveTeamWiped', 'percentTimeMoving', 'objectiveReviver']]
+    merged = merged[['matchID', 'start', 'user', 'mode', 'teamPlacement', 'kills', 'deaths', 'kdRatio', 'assists', 'downs', 'damageDone', 'damageTaken', 'dmg_to_kill', 'dmg_ratio', 'potential_kills', 'gulag', 'headshots', 'objectiveTeamWiped', 'percentTimeMoving', 'objectiveReviver']]
     #convert to timestamp
     merged['start']= pd.to_datetime(merged['start'],unit='s')
     # merged.start = merged.start.dt.tz_localize('UTC').dt.tz_convert('America/Chicago')
@@ -869,11 +930,14 @@ def daily_games(pewpers): #daily_totals
     merged.start = merged.start - pd.Timedelta('05:00:00')
 
     merged['kdRatio'] = round(merged['kdRatio'],2)
+        
+    merged.dmg_to_kill = merged.dmg_to_kill.astype(int)
+    merged.potential_kills = merged.potential_kills.astype(int)
     merged.downs = merged.downs.astype(int)
     merged.damageDone = merged.damageDone.astype(int)
     merged.damageTaken = merged.damageTaken.astype(int)
-    merged.gulagKills = merged.gulagKills.astype(int)
-    merged.gulagDeaths = merged.gulagDeaths.astype(int)
+    # merged.gulagKills = merged.gulagKills.astype(int)
+    # merged.gulagDeaths = merged.gulagDeaths.astype(int)
     merged.headshots = merged.headshots.astype(int)
     merged.objectiveTeamWiped = merged.objectiveTeamWiped.fillna(0)
     merged.objectiveReviver = merged.objectiveReviver.fillna(0)
@@ -882,18 +946,71 @@ def daily_games(pewpers): #daily_totals
     merged.objectiveReviver = merged.objectiveReviver.astype(int)
     merged.teamPlacement = merged.teamPlacement.astype(int)
 
-    # merged['damageDone'] = int(merged['damageDone'])
-    # merged['damageTaken'] = int(merged['damageTaken'])
-    # merged['gulagKills'] = int(merged['gulagKills'])
-    # merged['gulagDeaths'] = int(merged['gulagDeaths'])
-    # merged['headshots'] = int(merged['headshots'])
-    # merged['objectiveTeamWiped'] = int(merged['objectiveTeamWiped'])
-    # merged['percentTimeMoving'] = round(merged['percentTimeMoving'],0)
-
-    print(merged)   
+    # print(merged)   
     file_name = str('MWBattleData/daily_games/'+str(today)+'.csv')
+    file_name2 = str('MWBattleData/daily_games/daily_games.csv')
+
     print('Create file: ' + file_name)
+
     merged.to_csv(file_name, index=False)
+    merged.to_csv(file_name2, index=False)
+
+
+def daily_team_games(): #daily_totals
+
+    current_date = datetime.datetime.utcnow() - datetime.timedelta(hours=5)
+    today = current_date.date()
+    # tomorrow = today + timedelta(days = 1)
+    # yest = today - timedelta(days = 1)
+    # print('current_date', current_date)
+
+    # print(today)
+    # print(tomorrow)
+    # print(yest)
+
+
+    # unix time for today and yesterday
+    # t = time.mktime(today.timetuple())
+    # tom = time.mktime(tomorrow.timetuple())
+    # y =  time.mktime(yest.timetuple())
+    # print(int(t), int(tom), int(y))
+
+    df_list =[]
+    
+    file_name = str('MWBattleData/daily_games/'+str(today)+'.csv')
+    df = pd.read_csv (file_name)
+
+    df = df.sort_values(by=['user'])
+
+
+    #Create Teams Column
+    df['team']= df[['matchID', 'user']].groupby('matchID')['user'].transform(lambda x: '|'.join(x))
+
+    # Create Team_df
+    team_df = df.groupby('matchID').agg({'start': 'min', 'team': 'min', 'mode': 'min', 'teamPlacement': 'min', 'kills': 'sum', 'deaths': 'sum','downs': 'sum', 'assists': 'sum', 'damageDone': 'sum', 'damageTaken': 'sum',
+                                            'headshots': 'sum', 'objectiveTeamWiped': 'sum', 'objectiveReviver': 'sum'})
+    
+    #Create KD column
+    team_df['kd'] = round(team_df.kills / team_df.deaths,2)
+    team_df['kd'].mask(team_df['deaths'] == 0, round(team_df.kills,2), inplace=True)
+
+    #team_df['matchID'] = df.groupby(['matchID'])
+    #team_df['start'] = df.groupby(['matchID'])('start')
+    #team_df = df.groupby(by='matchID')
+    # team_df['teamPlacement']= df.groupby('matchID')['teamPlacement'].min()
+    team_df = team_df.sort_values(by=['start'])
+    team_df.reset_index(inplace=True)
+    #objectiveBrMissionPickupTablet needs to be added to daily games first
+    team_df = team_df[['matchID', 'start', 'mode','team', 'teamPlacement', 'kills', 'deaths', 'kd', 'downs', 'assists', 'damageDone', 'damageTaken', 'headshots', 'objectiveTeamWiped', 'objectiveReviver']]
+    # print(team_df)
+
+    file_name = str('MWBattleData/daily_team_games/'+str(today)+'.csv')
+    file_name2 = str('MWBattleData/daily_team_games/daily_team_games.csv')
+
+    # print('Create file: ' + file_name)
+    team_df.to_csv(file_name, index=False)
+    team_df.to_csv(file_name2, index=False)
+
 
 def weekly_kd_chart(pewpers): #daily_totals
 
@@ -921,33 +1038,32 @@ def weekly_kd_chart(pewpers): #daily_totals
         file_name = "user_files/"+ p+".csv"
         df = pd.read_csv (file_name)
 
-        games_list = []
-
 
         #Get Games count
-        user_df = df.loc[(df['start'] > wk)]
+        user_df = df.loc[(df['start'] > wk) & (df['br_stats'] == True)]
 
-        df_list.append(user_df)
-        merged = pd.concat(df_list)
 
         #rename mode col
-        merged['mode'].mask(merged['mode'] == 'br_brtrios', 'Trios', inplace=True)
-        merged['mode'].mask(merged['mode'] == 'br_brsolo', 'Solo', inplace=True)
-        merged['mode'].mask(merged['mode'] == 'br_brduos', 'Duos', inplace=True)
-        merged['mode'].mask(merged['mode'] == 'br_brquads', 'Quads', inplace=True)
+        user_df['mode'].mask(user_df['mode'] == 'br_brtrios', 'Trios', inplace=True)
+        user_df['mode'].mask(user_df['mode'] == 'br_brsolo', 'Solo', inplace=True)
+        user_df['mode'].mask(user_df['mode'] == 'br_brduos', 'Duos', inplace=True)
+        user_df['mode'].mask(user_df['mode'] == 'br_brquads', 'Quads', inplace=True)
 
-        merged = merged.sort_values(by=['start'])
-        merged = merged[['start', 'kills', 'deaths']]
+        user_df = user_df.sort_values(by=['start'])
+        user_df = user_df[['start', 'kills', 'deaths']]
         #convert to timestamp
-        merged['start']= pd.to_datetime(merged['start'],unit='s')
-        # merged.start = merged.start.dt.tz_localize('UTC').dt.tz_convert('America/Chicago')
+        user_df['start']= pd.to_datetime(user_df['start'],unit='s')
+        # user_df.start = user_df.start.dt.tz_localize('UTC').dt.tz_convert('America/Chicago')
 
-        merged.start = merged.start - pd.Timedelta('05:00:00')
+        user_df.start = user_df.start - pd.Timedelta('05:00:00')
+        
+        # print(user_df)
 
-        merged = merged.set_index('start').groupby(pd.Grouper(freq='D')).sum()
-
-
-        print(merged)   
+        user_df = user_df.set_index('start').groupby(pd.Grouper(freq='D')).sum()
+        # user_df.replace(0, np.nan, inplace=True)
+        # user_df.kills = user_df.kills.astype(int)
+        # user_df.deaths = user_df.deaths.astype(int)
+        # print(user_df)   
 
         out_dir ='./MWBattleData/chartWeekKd/'
         # try:
@@ -956,7 +1072,8 @@ def weekly_kd_chart(pewpers): #daily_totals
         #     print(out_dir, 'previously created')
         file_name = out_dir +  str(p)+'.csv'
         print('Create file: ' + file_name)
-        merged.to_csv(file_name, index=True)
+        user_df.to_csv(file_name, index=True)
+
 
 
 def season_stats(pewpers, seasons):
@@ -1193,55 +1310,69 @@ def user_season_totals(pewpers):
             games = (df.loc[(df['season']== s) & (df['br_stats'] == True),'matchID']).count()
             games_list.append(games)
 
-            #Get Wins by Season
-            wins = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] == 1),'teamPlacement']).count()
-            wins_list.append(wins)
+            if games == 0 :
+                wins_list.append(0)
+                win_pct.append(0)
+                kills_list.append(0)
+                deaths_list.append(0)
+                kd_list.append(0)
+                top5_list.append(0)
+                top5_pct.append(0)
+                top10_list.append(0)
+                top10_pct.append(0)
+                top25_list.append(0)
+                top25_pct.append(0)
+            else:
 
-            #win_pct
-            win_p = round(wins / games * 100,1)
-            win_pct.append(win_p)
+                #Get Wins by Season
+                wins = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] == 1),'teamPlacement']).count()
+                wins_list.append(wins)
 
-            #Kills by Season
-            kills = (df.loc[(df['season']== s) & (df['br_stats'] == True),'kills']).sum()
-            kills_list.append(kills)
-            
-            #Deaths by Season
-            deaths = (df.loc[(df['season']== s) & (df['br_stats'] == True),'deaths']).sum()
-            # print(deaths)
-            deaths_list.append(deaths)
-            
-            # #KD by Season
-            kd = round(kills /  deaths,2)
-            # print(kd)
-            kd_list.append(kd)
+                #win_pct
+                win_p = round(wins / games * 100,1)
+                win_pct.append(win_p)
 
-            #downs by Season
-            # downs = (df.loc[(df['season']== s),'downs']).sum()
-            # downs_list.append(downs)
+                #Kills by Season
+                kills = (df.loc[(df['season']== s) & (df['br_stats'] == True),'kills']).sum()
+                kills_list.append(kills)
+                
+                #Deaths by Season
+                deaths = (df.loc[(df['season']== s) & (df['br_stats'] == True),'deaths']).sum()
+                # print(deaths)
+                deaths_list.append(deaths)
+                
+                # #KD by Season
+                kd = round(kills /  deaths,2)
+                # print(kd)
+                kd_list.append(kd)
 
-            #downs by Season
-            top5 = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] < 6),'teamPlacement']).count()
-            top5_list.append(top5)
+                #downs by Season
+                # downs = (df.loc[(df['season']== s),'downs']).sum()
+                # downs_list.append(downs)
 
-            #top5_pct
-            top5_p = round(top5 / games * 100,1)
-            top5_pct.append(top5_p)
+                #downs by Season
+                top5 = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] < 6),'teamPlacement']).count()
+                top5_list.append(top5)
 
-            #downs by Season
-            top10 = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] < 11),'teamPlacement']).count()
-            top10_list.append(top10)
+                #top5_pct
+                top5_p = round(top5 / games * 100,1)
+                top5_pct.append(top5_p)
 
-            #top10_pct
-            top10_p = round(top10 / games * 100,1)
-            top10_pct.append(top10_p)
+                #downs by Season
+                top10 = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] < 11),'teamPlacement']).count()
+                top10_list.append(top10)
 
-            #downs by Season
-            top25 = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] < 26),'teamPlacement']).count()
-            top25_list.append(top25)
+                #top10_pct
+                top10_p = round(top10 / games * 100,1)
+                top10_pct.append(top10_p)
 
-            #top25_pct
-            top25_p = round(top25 / games * 100,1)
-            top25_pct.append(top25_p)
+                #downs by Season
+                top25 = (df.loc[(df['season']== s) & (df['br_stats'] == True) & (df['teamPlacement'] < 26),'teamPlacement']).count()
+                top25_list.append(top25)
+
+                #top25_pct
+                top25_p = round(top25 / games * 100,1)
+                top25_pct.append(top25_p)
             s_list.append(s)
 
         d = {
@@ -1465,55 +1596,69 @@ def user_team_totals(pewpers):
                 # games = (df.loc[(df['mode']== s) & (df['br_stats'] == True),'matchID']).count()
                 games_list.append(games)
 
-                #Get Wins by Season
-                wins = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] == 1)),'teamPlacement']).count()
-                wins_list.append(wins)
+                if games == 0 :
+                    wins_list.append(0)
+                    win_pct.append(0)
+                    kills_list.append(0)
+                    deaths_list.append(0)
+                    kd_list.append(0)
+                    top5_list.append(0)
+                    top5_pct.append(0)
+                    top10_list.append(0)
+                    top10_pct.append(0)
+                    top25_list.append(0)
+                    top25_pct.append(0)
+                else:
 
-                #win_pct
-                win_p = round(wins / games * 100,1)
-                win_pct.append(win_p)
+                    #Get Wins by Season
+                    wins = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] == 1)),'teamPlacement']).count()
+                    wins_list.append(wins)
 
-                #Kills by Season
-                kills = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True)),'kills']).sum()
-                kills_list.append(kills)
-                
-                #Deaths by Season
-                deaths = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True)),'deaths']).sum()
-                # print(deaths)
-                deaths_list.append(deaths)
-                
-                # #KD by Season
-                kd = round(kills /  deaths,2)
-                # print(kd)
-                kd_list.append(kd)
+                    #win_pct
+                    win_p = round(wins / games * 100,1)
+                    win_pct.append(win_p)
 
-                #downs by Season
-                # downs = (df.loc[(df['season']== s),'downs']).sum()
-                # downs_list.append(downs)
+                    #Kills by Season
+                    kills = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True)),'kills']).sum()
+                    kills_list.append(kills)
+                    
+                    #Deaths by Season
+                    deaths = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True)),'deaths']).sum()
+                    # print(deaths)
+                    deaths_list.append(deaths)
+                    
+                    # #KD by Season
+                    kd = round(kills /  deaths,2)
+                    # print(kd)
+                    kd_list.append(kd)
 
-                #downs by Season
-                top5 = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] < 6)),'teamPlacement']).count()
-                top5_list.append(top5)
+                    #downs by Season
+                    # downs = (df.loc[(df['season']== s),'downs']).sum()
+                    # downs_list.append(downs)
 
-                #top5_pct
-                top5_p = round(top5 / games * 100,1)
-                top5_pct.append(top5_p)
+                    #downs by Season
+                    top5 = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] < 6)),'teamPlacement']).count()
+                    top5_list.append(top5)
 
-                #downs by Season
-                top10 = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] < 11)),'teamPlacement']).count()
-                top10_list.append(top10)
+                    #top5_pct
+                    top5_p = round(top5 / games * 100,1)
+                    top5_pct.append(top5_p)
 
-                #top10_pct
-                top10_p = round(top10 / games * 100,1)
-                top10_pct.append(top10_p)
+                    #downs by Season
+                    top10 = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] < 11)),'teamPlacement']).count()
+                    top10_list.append(top10)
 
-                #downs by Season
-                top25 = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] < 26)),'teamPlacement']).count()
-                top25_list.append(top25)
+                    #top10_pct
+                    top10_p = round(top10 / games * 100,1)
+                    top10_pct.append(top10_p)
 
-                #top25_pct
-                top25_p = round(top25 / games * 100,1)
-                top25_pct.append(top25_p)
+                    #downs by Season
+                    top25 = (df.loc[(((df['teammate1']== s)| (df['teammate2']== s) | (df['teammate3']== s) | (df['teammate4']== s)) & (df['br_stats'] == True) & (df['teamPlacement'] < 26)),'teamPlacement']).count()
+                    top25_list.append(top25)
+
+                    #top25_pct
+                    top25_p = round(top25 / games * 100,1)
+                    top25_pct.append(top25_p)
 
                 #append condition (teammate, sesaon, mode)
                 s_list.append(s)
@@ -1552,34 +1697,7 @@ def kd_chart(pewpers):
     for p in pewpers:
         file_name = "user_files/"+ p+".csv"
         df = pd.read_csv (file_name)
-
-        # avg_fin_ls = []
-        # mx_kills_ls = []
-        # kills_list = []
-        # deaths_list = []
-        # ass_ls =[]
-        # downs_list = []
-        # exec_ls =[]
-        # head_ls= []
-        # headpct_ls= []
-        # gulag_w_ls = []
-        # gulag_l_ls =[]
-        # gulag_pct_ls =[]
-
-        # games_list = []
-        # wins_list = []
-        # win_pct= []
-        # kills_list = []
-
-        # kd_list = []
         
-        # top5_list =[]
-        # top10_list = []
-        # top25_list = []
-        # top5_pct = []
-        # top10_pct = []
-        # top25_pct = []
-
         match_ls= []
         kd_ls =[]
         kd_rolling =[]
@@ -1613,129 +1731,28 @@ def kd_chart(pewpers):
 
                 games.rename(columns={'index':'match'}, inplace=True)
 
-            else:
-                print('no matches for', p, s)
+            # else:
+            #     print('no matches for', p, s)
 
             # print(games)
             games = games.iloc[10:]
             # print(games)
 
             out_dir ='./MWBattleData/chartKd/{}'.format(p)
-            try:
-                os.mkdir(out_dir)
-            except:
-                print(out_dir, 'previously created')
+            # try:
+            #     os.mkdir(out_dir)
+            # except:
+            #     print(out_dir, 'previously created')
             file_name = str(out_dir+'/'+s+'.csv')
-            print('Create file: ' + file_name)
+            # print('Create file: ' + file_name)
             games.to_csv(file_name, index=False)
-            
-            
-
-
-
-            #     kills = (df.loc[(df['br_stats'] == True),['kills','deaths']])
-            #     for k in kills:
-            #         kd_ls.append(k)
-
-            # print(match_ls)
-            # print(kd_ls)
-                # # deaths = (df.loc[(df['br_stats'] == True),'deaths'])
-                # #Kills by Season
-                
-
-
-                # #Deaths by Season
-                # deaths = (df.loc[(df['br_stats'] == True),'deaths']).sum()
-
-                # #Get average finish
-                # avFin = (df.loc[(df['br_stats'] == True),'teamPlacement']).mean()
-                # avFin = round(avFin,1)
-                # avg_fin_ls.append(avFin)
-
-                # #Get Max Kills by Season
-                # mxk = (df.loc[(df['br_stats'] == True),'kills']).max()
-                # mx_kills_ls.append(mxk)
-
-                # #kills/gm
-                # kills_gm  = round(kills / games,2)
-                # kills_list.append(kills_gm)
-
-                # #deaths/gm
-                # deaths_gm  = round(deaths / games,2)
-                # deaths_list.append(deaths_gm)
-
-                # #assists
-                # assists = (df.loc[(df['br_stats'] == True),'assists']).sum()
-                # ass_ls.append(assists)
-
-                # #downs
-                # downs = (df.loc[(df['br_stats'] == True),'downs']).sum()
-                # downs = int(downs)
-                # downs_list.append(downs)
-
-                # #exec
-                # execs = (df.loc[(df['br_stats'] == True),'executions']).sum()
-                # exec_ls.append(execs)
-
-                # #headshot
-                # headshots = (df.loc[(df['br_stats'] == True),'headshots']).sum()
-                # headshot = int(headshots)
-                # head_ls.append(headshots)
-
-                # #headshot %
-                # h_pct = round(headshots / kills * 100, 1)
-                # headpct_ls.append(h_pct)
-
-                # #gulag w
-                # gw = (df.loc[(df['br_stats'] == True),'gulagKills']).sum()
-                # gw = int(gw)
-                # gulag_w_ls.append(gw)
-
-
-                # #gulag L
-                # gl = (df.loc[(df['br_stats'] == True),'gulagDeaths']).sum()
-                # gl= int(gl)
-                # gulag_l_ls.append(gl)
-
-                # #gulag pct
-                # try:
-                #     gp = round(gw / (gw+gl) * 100, 1)
-                # except:
-                #     gp = 0.0
-                # gulag_pct_ls.append(gp)
+        print('Created chartKd files for: ', p)
 
 def gulag_chart(pewpers):
 
     for p in pewpers:
         file_name = "user_files/"+ p+".csv"
         df = pd.read_csv (file_name)
-
-        # avg_fin_ls = []
-        # mx_kills_ls = []
-        # kills_list = []
-        # deaths_list = []
-        # ass_ls =[]
-        # downs_list = []
-        # exec_ls =[]
-        # head_ls= []
-        # headpct_ls= []
-        # gulag_w_ls = []
-        # gulag_l_ls =[]
-        # gulag_pct_ls =[]
-
-        # games_list = []
-        # wins_list = []
-        # win_pct= []
-        # kills_list = []
-
-        # kd_list = []
-        
-        # top5_list =[]
-        # top10_list = []
-        # top25_list = []
-        # top5_pct = []
-        # top10_pct = []
-        # top25_pct = []
 
         match_ls= []
         kd_ls =[]
@@ -1774,21 +1791,21 @@ def gulag_chart(pewpers):
 
                 games.rename(columns={'index':'match'}, inplace=True)
 
-            else:
-                print('no matches for', p, s)
+            # else:
+            #     print('no matches for', p, s)
 
             # print(games)
             games = games.iloc[10:]
-            print(games)
+            # print(games)
             out_dir ='./MWBattleData/chartGulag/{}'.format(p)
-            try:
-                os.mkdir(out_dir)
-            except:
-                print(out_dir, 'previously created')
+            # try:
+            #     os.mkdir(out_dir)
+            # except:
+            #     print(out_dir, 'previously created')
             file_name = str(out_dir+'/'+s+'.csv')
-            print('Create file: ' + file_name)
+            # print('Create file: ' + file_name)
             games.to_csv(file_name, index=False)
-            
+        print('Created chartGulag files for: ', p)
             
 
 
@@ -1886,7 +1903,9 @@ def main():
         gulag_chart(pewpers)
         daily_games(pewpers)
         weekly_kd_chart(pewpers)
+        daily_team_games()
         #testing
+
 
 
         #UPLOADS NEEDED
